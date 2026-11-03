@@ -1,0 +1,176 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "card_name",
+    "verdict",
+    "uncertainty_reason",
+    "mentions",
+    "rejected"
+  ],
+  "properties": {
+    "card_name": {
+      "type": "string",
+      "description": "Exact name of the card."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "uncertain"
+      ],
+      "description": "'ok' if you are confident of every mention's antecedent; 'uncertain' if any mention has confident: false."
+    },
+    "uncertainty_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "If verdict is 'uncertain', name the uncertain mentions and their candidate antecedents. Null if verdict is 'ok'."
+    },
+    "mentions": {
+      "type": "array",
+      "description": "All surface endophoric mentions in the card text, in left-to-right reading order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ability",
+          "mention_text",
+          "occurrence",
+          "context_snippet",
+          "category",
+          "antecedent",
+          "confident"
+        ],
+        "properties": {
+          "ability": {
+            "type": "string",
+            "description": "Ability identifier where the mention occurs, e.g. 'A0', 'A1', or 'F0.A0'."
+          },
+          "mention_text": {
+            "type": "string",
+            "description": "Exact surface text of the endophoric mention (e.g. 'it', 'its', 'that creature', 'another', 'that much', 'if you do', 'the exiled card', 'the rest', 'X'). For possessives like 'its controller' or 'that creature\\'s owner', emit ONLY the inner endophoric mention ('its', 'that creature')."
+          },
+          "occurrence": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-based occurrence index of this exact mention_text word/phrase within the ability."
+          },
+          "context_snippet": {
+            "type": "string",
+            "description": "Short surrounding phrase from the ability with the mention bracketed, e.g. 'lose life equal to [its] mana value'."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "pronoun",
+              "reflexive",
+              "demonstrative",
+              "definite_readback",
+              "participial_description",
+              "contrastive",
+              "complement_or_reciprocal",
+              "amount_or_outcome",
+              "lookback_or_followup",
+              "relative"
+            ],
+            "description": "Linguistic category of the endophoric mention."
+          },
+          "antecedent": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "referent_type",
+              "ability",
+              "text",
+              "secondary_text"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "text_span",
+                  "source",
+                  "performer",
+                  "distributive_member",
+                  "split"
+                ],
+                "description": "'text_span': the antecedent is quoted from the card. 'split': several separately named things, joined with ' + '. 'source': the card itself, not named in this ability (contrastive only). 'performer': the implicit 'you' (contrastive only). 'distributive_member': each member of a plural subject, excluded from its own count."
+              },
+              "referent_type": {
+                "type": "string",
+                "enum": [
+                  "object",
+                  "player",
+                  "event_or_action",
+                  "outcome_or_amount",
+                  "choice",
+                  "turn"
+                ],
+                "description": "Semantic sort of the antecedent referent."
+              },
+              "ability": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Ability ID where the antecedent text is (e.g. 'A0', 'F1.A2', 'cost'). For a 'split' whose parts are in different abilities, one ID per part in order, joined with ' + ' (e.g. 'A0 + A1'). Null only for 'source' and 'performer'."
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Verbatim span of the phrase that first introduced the referent. Null only for 'source' and 'performer'."
+              },
+              "secondary_text": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null unless: for 'the rest'/'the other', the whole collection; for a participial description, the action clause; when the referent was re-mentioned or changed zones since its first mention, the latest such re-mention; for a pronoun inside a quoted ability referring to the object having it, the 'this creature' inside the quotes."
+              }
+            }
+          },
+          "confident": {
+            "type": "boolean",
+            "description": "True if this specific mention's resolution is unambiguous and certain; false if uncertain."
+          }
+        }
+      }
+    },
+    "rejected": {
+      "type": "array",
+      "description": "Every listed candidate judged not to be a mention.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ability",
+          "candidate",
+          "occurrence",
+          "reason"
+        ],
+        "properties": {
+          "ability": {
+            "type": "string"
+          },
+          "candidate": {
+            "type": "string",
+            "description": "The candidate text exactly as listed."
+          },
+          "occurrence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "description": "A few words saying why it is not a mention."
+          }
+        }
+      }
+    }
+  }
+}

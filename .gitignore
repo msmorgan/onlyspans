@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# Run outputs are regenerable; the final reference is re-included explicitly once built.
+output/*
