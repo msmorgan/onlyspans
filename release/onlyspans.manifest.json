@@ -455,6 +455,168 @@
       "occurrences": [
         1
       ]
+    },
+    {
+      "card": "Paradox Surveyor",
+      "mention": "its",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "text": "a card with {X} in its mana cost"
+        }
+      },
+      "to": {
+        "antecedent": {
+          "text": "a card"
+        },
+        "occurrences": [
+          1
+        ]
+      }
+    },
+    {
+      "card": "Corrosion",
+      "mention": "it",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "text": "each artifact with mana value less than or equal to the number of rust counters on it"
+        }
+      },
+      "to": {
+        "antecedent": {
+          "text": "each artifact"
+        },
+        "occurrences": [
+          2
+        ]
+      }
+    },
+    {
+      "card": "Venomous Fangs",
+      "mention": "the other",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "text": "a creature",
+          "secondary_text": null
+        }
+      },
+      "to": {
+        "antecedent": {
+          "text": "enchanted creature",
+          "secondary_text": "a creature"
+        },
+        "occurrences": [
+          1
+        ]
+      }
+    },
+    {
+      "card": "Charisma",
+      "mention": "the other",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "text": "a creature",
+          "secondary_text": null
+        }
+      },
+      "to": {
+        "antecedent": {
+          "text": "enchanted creature",
+          "secondary_text": "a creature"
+        },
+        "occurrences": [
+          1
+        ]
+      }
+    },
+    {
+      "card": "Reins of Power",
+      "mention": "the other",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "kind": "text_span"
+        }
+      },
+      "to": {
+        "antecedent": {
+          "kind": "distributive_member"
+        },
+        "occurrences": [
+          1
+        ]
+      }
+    },
+    {
+      "card": "Lobelia Sackville-Baggins",
+      "mention": "the exiled card",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "secondary_text": null
+        }
+      },
+      "to": {
+        "antecedent": {
+          "secondary_text": "exile target creature card from an opponent's graveyard that was put there from the battlefield this turn"
+        },
+        "occurrences": [
+          1
+        ]
+      }
+    },
+    {
+      "card": "Frantic Scapegoat",
+      "mention": "the other",
+      "rule": "card_fix",
+      "from": {
+        "mention": {
+          "mention_text": "the other",
+          "occurrence": 1,
+          "context_snippet": "you may suspect one of [the other] creatures"
+        },
+        "antecedent": {}
+      },
+      "to": {
+        "mention": {
+          "mention_text": "the other creatures",
+          "occurrence": 1,
+          "context_snippet": "you may suspect one of [the other creatures]"
+        },
+        "occurrences": [
+          1
+        ]
+      }
+    },
+    {
+      "card": "Hardy Outlander",
+      "mention": "another",
+      "rule": "card_fix",
+      "from": {
+        "mention": {},
+        "antecedent": {
+          "text": "this creature",
+          "secondary_text": null
+        }
+      },
+      "to": {
+        "antecedent": {
+          "text": "Commander creatures you own",
+          "secondary_text": "this creature"
+        },
+        "occurrences": [
+          1
+        ]
+      }
     }
   ]
 }

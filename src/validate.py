@@ -133,6 +133,16 @@ def validate_grounding(data: dict[str, Any], card_info: dict[str, Any]) -> tuple
                     errors.append(f"{tag}: antecedent ability {aid!r} unknown")
                 elif part not in src:
                     errors.append(f"{tag}: antecedent text {part!r} not verbatim in {aid}")
+        # An antecedent can't contain its own mention ("a card with {X} in its mana cost" for "its").
+        if a_text is not None and kind == "text_span" and a_aid == aid and text is not None:
+            hits = list(re.finditer(r"(?<!\w)" + re.escape(m.get("mention_text") or "") + r"(?!\w)", text,
+                                    flags=re.IGNORECASE))
+            occ = m.get("occurrence")
+            if isinstance(occ, int) and 0 < occ <= len(hits):
+                ms, me = hits[occ - 1].span()
+                spans = [x.span() for x in re.finditer(re.escape(a_text), text)]
+                if spans and all(s0 <= ms and me <= e0 for s0, e0 in spans):
+                    errors.append(f"{tag}: antecedent text {a_text!r} contains the mention itself")
         sec = ant.get("secondary_text")
         if sec is not None and not any(sec in t for t in all_text):
             errors.append(f"{tag}: secondary_text {sec!r} not verbatim on the card")

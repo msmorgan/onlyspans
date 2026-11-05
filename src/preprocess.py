@@ -107,7 +107,9 @@ _CANDIDATE_PATTERNS = [
     r"X|Y|Z",
     r"if you do|if you don't|if you can't|when you do|if they do|if they don't|if they can't|when they do"
     r"|otherwise|if it doesn't",
-    r"this way|the same|the rest|the other|each other(?=\s*[.,;]|$)|one another",
+    r"this way|the same|the rest"
+    r"|the other(?: (?:creatures?|cards?|permanents?|players?|spells?|piles?|ones?|opponents?)\b)?"
+    r"|each other(?=\s*[.,;]|$)|one another",
     r"which|who|whose|whom",
     r"the (?:exiled|sacrificed|revealed|discarded|tapped|returned|milled|copied|destroyed|noted|cycled|discovered"
     r"|drafted|exploited|targeted|attacking|blocking|blocked|modified|blighted) [a-z]+",
