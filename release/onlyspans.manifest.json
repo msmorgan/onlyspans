@@ -48,5 +48,413 @@
       "claude-opus-5-5"
     ],
     "effort": "medium"
-  }
+  },
+  "fixups": [
+    {
+      "card": "Strongarm Tactics",
+      "mention": "who",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Whispering Specter",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Pollen Lullaby",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Varchild, Betrayer of Kjeldor",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Kappa Tech-Wrecker",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Poison the Waters",
+      "mention": "their",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Poison the Waters",
+      "mention": "That player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Amarant Coral",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Grenzo's Ruffians",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Aberrant",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Pit Scorpion",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Outpace Oblivion",
+      "mention": "who",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Trade Secrets",
+      "mention": "That opponent",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Scythe Specter",
+      "mention": "who",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Lightning, Army of One",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Lightning, Army of One",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Thought Hemorrhage",
+      "mention": "their",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Thought Hemorrhage",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Thought Hemorrhage",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Thought Hemorrhage",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Said // Done",
+      "mention": "their",
+      "rule": "type_correction",
+      "from": "player",
+      "to": "object"
+    },
+    {
+      "card": "Odylic Wraith",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Goblin Morningstar",
+      "mention": "it",
+      "rule": "verb_crop",
+      "from": "Create a 1/1 red Goblin creature token",
+      "to": "a 1/1 red Goblin creature token",
+      "occurrences": [
+        2
+      ]
+    },
+    {
+      "card": "The Ancient One",
+      "mention": "its",
+      "rule": "verb_crop",
+      "from": "discard a card",
+      "to": "a card",
+      "occurrences": [
+        3
+      ]
+    },
+    {
+      "card": "Parapet Thrasher",
+      "mention": "that opponent",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Parapet Thrasher",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Secret of Bloodbending",
+      "mention": "their",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Krydle of Baldur's Gate",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Necrogen Rotpriest",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Stigma Lasher",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Chandra, Flameshaper",
+      "mention": "that card",
+      "rule": "verb_crop",
+      "from": "Choose one",
+      "to": "one",
+      "occurrences": [
+        1
+      ]
+    },
+    {
+      "card": "Crosstown Courier",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Perish the Thought",
+      "mention": "their",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Cut a Deal",
+      "mention": "who",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Radiating Lightning",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Brood Butcher",
+      "mention": "It",
+      "rule": "verb_crop",
+      "from": "create a 1/1 colorless Eldrazi Scion creature token",
+      "to": "a 1/1 colorless Eldrazi Scion creature token",
+      "occurrences": [
+        1
+      ]
+    },
+    {
+      "card": "Super State",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Wojek Investigator",
+      "mention": "who",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Vincent, Vengeful Atoner",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Dreamstealer",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Szadek, Lord of Secrets",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Kwain, Itinerant Meddler",
+      "mention": "who",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Ghazbán Ogre",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Ghazbán Ogre",
+      "mention": "the player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Human Torch",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Ember Gale",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Kediss, Emberclaw Familiar",
+      "mention": "other",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Anowon, the Ruin Thief",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Anowon, the Ruin Thief",
+      "mention": "them",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Anowon, the Ruin Thief",
+      "mention": "the player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Cait, Cage Brawler",
+      "mention": "the card",
+      "rule": "verb_crop",
+      "from": "discard a card",
+      "to": "a card",
+      "occurrences": [
+        2
+      ]
+    },
+    {
+      "card": "Cait, Cage Brawler",
+      "mention": "those cards",
+      "rule": "verb_crop",
+      "from": "discard a card",
+      "to": "a card",
+      "occurrences": [
+        2
+      ]
+    },
+    {
+      "card": "Spark Mage",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Reno and Rude",
+      "mention": "that player",
+      "rule": "player_type",
+      "from": "object",
+      "to": "player"
+    },
+    {
+      "card": "Haphazard Bombardment",
+      "mention": "them",
+      "rule": "verb_crop",
+      "from": "choose four nonenchantment permanents you don't control",
+      "to": "four nonenchantment permanents you don't control",
+      "occurrences": [
+        1
+      ]
+    }
+  ]
 }

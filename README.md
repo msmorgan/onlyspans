@@ -56,6 +56,7 @@ This is model-produced data with cross-checks, not human-verified ground truth.
 - **Card data:** Scryfall Oracle Cards of 2026-10-03, `https://data.scryfall.io/oracle-cards/oracle-cards-20261003090153.jsonl.gz` (uncompressed SHA-256 `49dc966b…`, full hash in the manifest).
 - **Environment:** the release was built through Claude Code agents running under the owner's Claude Code setup, so its prompts also carried that setup's CLAUDE.md instructions and plugin hook output (unrelated to the task). The current code isolates every call from the local setup instead.
 - **Antecedent positions:** 32,727 spans occur once in their ability; 654 are self-references or variables (any occurrence is the same thing); 267 are the only occurrence before their mention; 248 were chosen by `claude-opus-5-5` (medium effort, $2). 1,306 antecedents have no span.
+- **Fixups:** 55 corrections after release: 47 antecedents that are player phrases were typed `object`, 7 object antecedents included their introducing verb, and 1 (Said // Done) was typed `player` instead of `object`. They come from consensus accepting matching spans with mismatched types, which `consensus.py` now also checks.
 - **Volume and cost:** 2,866 cards queued: 2,855 adjudicated, 10 adjudicated and then repaired, 1 declined. About $490 in API-equivalent terms (Haiku ~$28, Sonnet ~$290, Opus ~$170), run on a Claude subscription. Wall time was roughly 3 h for Haiku, 2 h for Sonnet (in parallel) and 1 h for adjudication.
 
 ## Rebuilding
@@ -111,6 +112,12 @@ Every model call runs `claude -p` with the spec as its whole system prompt and i
 
    ```sh
    python3 src/locate.py
+   ```
+
+7. **Fixups.** `fixups.py` applies mechanical corrections (player phrases typed as players; an object antecedent cropped to its noun phrase when it starts with the verb that introduced it, such as "Create …" or "discard …"; a short list of individual corrections) and lists every change in the manifest:
+
+   ```sh
+   python3 src/fixups.py
    ```
 
 ## License and notice

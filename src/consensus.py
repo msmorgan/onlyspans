@@ -3,7 +3,7 @@
 
 A card is accepted as-is only if every run annotated the same mentions with the
 same referent, confidently, with no grounding failures. "Same referent" is a
-mechanical check: identical antecedent kind, and antecedent texts where one
+mechanical check: identical referent_type and kind, and antecedent texts where one
 contains the other (a longer or shorter span of the same phrase). Anything else
 is queued, one line per mention, in the format src/adjudicate.py reads.
 """
@@ -48,6 +48,8 @@ def is_self(ant: dict, names: set[str]) -> bool:
 
 def same_referent(a: dict, b: dict, names: set[str] = frozenset()) -> bool:
     x, y = a["antecedent"], b["antecedent"]
+    if x.get("referent_type") != y.get("referent_type"):
+        return False
     if is_self(x, names) and is_self(y, names):
         return True
     if x.get("kind") != y.get("kind"):
