@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
-# Run outputs are regenerable; the final reference is re-included explicitly once built.
+# Run outputs (regenerable); the published dataset lives in release/.
 output/*
+# Downloaded inputs: Scryfall bulk data and the mtg-rules plugin (src/setup_data.py)
+data/

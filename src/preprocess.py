@@ -9,6 +9,9 @@ import pathlib
 import re
 from typing import Any, Iterator
 
+# Scryfall "Oracle Cards" bulk data, as JSON Lines (.jsonl or .jsonl.gz) or Scryfall's JSON array.
+DEFAULT_SCRYFALL = "data/oracle-cards.jsonl.gz"
+
 REMINDER_RE = re.compile(r"\s*\([^()]*\)")  # Oracle parentheses are always reminder text
 
 
@@ -278,30 +281,31 @@ def iter_scryfall_cards(
     path: str | pathlib.Path,
     vintage_only: bool = True,
 ) -> Iterator[dict[str, Any]]:
-    """Yield Scryfall card dicts from a .jsonl or .jsonl.gz file."""
+    """Yield Scryfall card dicts from a JSON Lines file or a JSON array, optionally gzipped."""
     p = pathlib.Path(path)
     opener = gzip.open if p.suffix == ".gz" else open
     with opener(p, "rt", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            card = json.loads(line)
+        first = f.read(1)
+        f.seek(0)
+        cards = json.load(f) if first == "[" else (json.loads(l) for l in f if l.strip())
+        for card in cards:
             if vintage_only and not is_vintage_playable(card):
                 continue
             yield card
 
 
-def load_canon_card_names(canon_dir: str | pathlib.Path) -> set[str]:
-    """Load the set of canon card names from deckmaste.rs plugins_v3/canon/cards/*.syl."""
-    cdir = pathlib.Path(canon_dir)
-    names: set[str] = set()
-    for p in sorted(cdir.glob("*.syl")):
-        stem = p.stem.replace("{slash}", "/").replace("{colon}", ":")
-        names.add(stem)
-        # Meld pairs are one canon file but separate Scryfall cards; the halves of
-        # an ordinary multi-face card never appear as Scryfall names, so this is safe.
-        names.update(stem.split(" // "))
+def load_card_names(path: str | pathlib.Path) -> list[str]:
+    """Card names from a text file, one per line; blank lines and #-comments ignored.
+
+    A meld pair written as one line ("A // B") also selects each half, since
+    Scryfall lists meld halves as separate cards.
+    """
+    names: list[str] = []
+    for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            names.append(line)
+            names.extend(p for p in line.split(" // ") if p != line)
     return names
 
 
@@ -311,7 +315,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preview preprocessed MTG cards.")
     parser.add_argument(
         "--scryfall",
-        default="../deckmaste.rs/data/scryfall/oracle-cards.jsonl",
+        default=DEFAULT_SCRYFALL,
         help="Path to Scryfall oracle-cards .jsonl or .jsonl.gz",
     )
     parser.add_argument(

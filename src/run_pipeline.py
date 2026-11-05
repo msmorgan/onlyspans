@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Annotate preprocessed MTG cards with the Tier-1 Haiku agent and escalate to Tier-2 Opus.
+"""Annotate preprocessed MTG cards with a Tier-1 model and optionally escalate to Tier-2 Opus.
 
 Output is an append-only JSONL log; the last row per oracle_id is the current
 result. A rerun skips cards whose current row is final, reruns failures, and
@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as cf
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -18,14 +19,14 @@ import sys
 import time
 from typing import Any
 
-from build_agents import spec_sha, stale_agents
-from preprocess import format_preprocessed_card, iter_scryfall_cards, load_canon_card_names
+from system_prompts import spec_sha, system_prompt
+from preprocess import DEFAULT_SCRYFALL, format_preprocessed_card, iter_scryfall_cards, load_card_names
 from validate import SCHEMA, validate_grounding, validate_schema
 
 ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent
 SCHEMA_ARG = json.dumps(SCHEMA, separators=(",", ":"))
 
-TIER1 = {"agent": "endophora-haiku", "model": "haiku", "timeout_sec": 180, "allowed_tools": None}
+TIER1 = {"name": "annotate", "model": "haiku", "timeout_sec": 180, "allowed_tools": None}
 # Read-only lookup scripts of the mtg-rules skill that Tier-2 may run. Data setup
 # scripts (setup-data, ensure-data) are deliberately excluded; in -p mode any
 # shell command not allowed here is refused without a prompt.
@@ -35,49 +36,50 @@ MTG_RULES_SCRIPTS = [
 ]
 
 
-def mtg_rules_skill_dirs() -> list[pathlib.Path]:
-    """Every installed mtg-rules skill directory.
+REPO_MTG_RULES = ROOT_DIR / "data" / "mtg-rules" / "skills" / "mtg-rules"
+REPO_MTG_RULES_DATA = ROOT_DIR / "data" / "mtg-rules" / "data"
 
-    The plugin can be cached under more than one marketplace and version, and the
-    CLI tells the agent which one it loaded, so the scripts are allowed in all of them.
+
+def mtg_rules_skill_dir() -> pathlib.Path | None:
+    """The mtg-rules skill used for rulings and rules lookups, or None (optional).
+
+    $MTG_RULES_DIR (with $MTG_RULES_DATA) if set; otherwise the copy that
+    src/setup_data.py puts in data/. The plugin falls back to other installs on
+    the machine when its data is missing, so the data must resolve to the
+    expected directory, or the plugin is not used at all.
     """
-    base = pathlib.Path.home() / ".claude" / "plugins" / "cache"
-    return sorted(d for d in base.glob("*/mtg-rules/*/skills/mtg-rules") if (d / "scripts" / "rule").exists())
+    env = os.environ.get("MTG_RULES_DIR")
+    skill = pathlib.Path(env).expanduser() if env else REPO_MTG_RULES
+    if not (skill / "scripts" / "rule").exists():
+        return None
+    if not env:
+        os.environ["MTG_RULES_DATA"] = str(REPO_MTG_RULES_DATA)
+    want = os.environ.get("MTG_RULES_DATA")
+    got = subprocess.run([sys.executable, str(skill / "scripts" / "data-path")],
+                         capture_output=True, text=True, check=False).stdout.strip()
+    if not want or not got or pathlib.Path(got).resolve() != pathlib.Path(want).resolve():
+        print(f"warning: mtg-rules data resolves to {got or 'nothing'!r}, not {want!r}; "
+              "not using mtg-rules (run src/setup_data.py)", file=sys.stderr)
+        return None
+    return skill
 
 
-def newest_mtg_rules_skill_dir() -> pathlib.Path | None:
-    def version(d: pathlib.Path) -> tuple[int, ...]:
-        try:
-            return tuple(int(x) for x in d.parents[1].name.split("."))
-        except ValueError:
-            return ()
-
-    dirs = mtg_rules_skill_dirs()
-    return max(dirs, key=version) if dirs else None
-
-
-def tier2_allowed_tools() -> list[str]:
+def tier2_allowed_tools(skill: pathlib.Path | None) -> list[str]:
     # No Skill tool: enabling it injects the listing of every installed skill
     # (~10k tokens) into the first user message, after the last cacheable
     # point, so every escalation paid to re-write it. Tier-2 runs the
     # mtg-rules scripts directly instead (see build_prompt).
-    # Read is limited to the mtg-rules skill: Tier-2 must not see the canon
-    # .syl encodings or earlier outputs, or it stops being an independent annotator.
-    tools = []
-    dirs = mtg_rules_skill_dirs()
-    if not dirs:
-        print("warning: mtg-rules plugin not found; Tier-2 runs without CR lookups", file=sys.stderr)
-    for skill in dirs:
-        tools.append(f"Read(/{skill}/**)")
-        tools += [f"Bash({skill / 'scripts' / name}:*)" for name in MTG_RULES_SCRIPTS]
-    return tools
+    if skill is None:
+        return []
+    return [f"Read(/{skill}/**)"] + [f"Bash({skill / 'scripts' / name}:*)" for name in MTG_RULES_SCRIPTS]
 
 
-MTG_RULES_DIR = newest_mtg_rules_skill_dir()
-TIER2 = {"agent": "endophora-opus", "model": "opus", "timeout_sec": 600, "allowed_tools": tier2_allowed_tools()}
+MTG_RULES_DIR = mtg_rules_skill_dir()
+TIER2 = {"name": "escalate", "model": "opus", "timeout_sec": 600,
+         "allowed_tools": tier2_allowed_tools(MTG_RULES_DIR)}
 
-# Representative canon cards. Many of these are worked examples in the spec, so
-# the spike checks that the spec is followed, not that it generalizes.
+# A 15-card smoke set used while developing the spec (--spike). It is a sanity
+# check that the spec is followed, not an evaluation set.
 SPIKE_CARDS = [
     "Ad Nauseam",
     "Adaptive Automaton",
@@ -96,9 +98,9 @@ SPIKE_CARDS = [
     "Afflicted Deserter // Werewolf Ransacker",
 ]
 
-# 40 Vintage-legal cards outside canon (random.Random(20261104) over cards with
+# 40 random Vintage-legal cards (random.Random(20261104) over cards with
 # at least one candidate mention). The startup guard checks that no 9-word run
-# of their text, or of any canon card's text, appears in the spec.
+# of their text, or of any --cards-file card's text, appears in the spec.
 HELDOUT_CARDS = [
     "Fatal Attraction", "Charging Tuskodon", "Jor Kadeen, First Goldwarden", "Mtenda Lion",
     "H.E.R.B.I.E., Lovable Robot", "Retreat to Hagra", "Frost Breath", "Merchant's Dockhand",
@@ -113,12 +115,32 @@ HELDOUT_CARDS = [
 
 
 def load_scryfall_snapshot(path: pathlib.Path) -> dict[str, Any] | None:
-    """Identify the Scryfall bulk snapshot from its sibling metadata file, if present."""
+    """Identify the Scryfall bulk file: from data/sources.json (written by
+    src/setup_data.py) when it describes this file, else a sibling metadata file."""
+    sources = ROOT_DIR / "data" / "sources.json"
+    if sources.exists():
+        entry = json.loads(sources.read_text(encoding="utf-8")).get("scryfall") or {}
+        if entry.get("path") and (ROOT_DIR / entry["path"]).resolve() == path.resolve():
+            return {k: entry.get(k) for k in ("download_uri", "updated_at", "sha256", "uncompressed_sha256")}
     meta_path = path.parent / f"{path.name.split('.')[0]}.metadata.json"
     if not meta_path.exists():
         return None
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    return {k: meta.get(k) for k in ("descriptor_updated_at", "jsonl_sha256")}
+    return {k: meta.get(k) for k in ("descriptor_updated_at", "jsonl_download_uri", "jsonl_sha256")}
+
+
+def claude_version() -> str | None:
+    try:
+        return subprocess.run(["claude", "--version"], capture_output=True, text=True,
+                              timeout=60, check=False).stdout.strip() or None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+# Stop a run after this many consecutive call failures (a broken CLI or auth
+# would otherwise write an error row for every remaining card).
+MAX_CONSECUTIVE_FAILURES = 20
+FAILURE_STATUSES = ("error", "timeout", "parse_error")
 
 
 def _words(text: str) -> list[str]:
@@ -152,6 +174,7 @@ def extract_structured_output(raw_stdout: str) -> tuple[dict[str, Any], dict[str
         "num_turns": envelope.get("num_turns"),
         "total_cost_usd": envelope.get("total_cost_usd"),
         "is_error": envelope.get("is_error", False),
+        "models": sorted((envelope.get("modelUsage") or {}).keys()),
         "usage": {k: (envelope.get("usage") or {}).get(k) for k in (
             "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")},
     }
@@ -181,7 +204,7 @@ def build_prompt(card_info: dict[str, Any], prior: dict[str, Any] | None) -> str
     )
 
 
-def run_agent_on_card(
+def run_model_on_card(
     card_info: dict[str, Any],
     tier: dict[str, Any],
     effort: str,
@@ -189,23 +212,26 @@ def run_agent_on_card(
     prompt_override: str | None = None,
 ) -> dict[str, Any]:
     """Invoke `claude -p` for one card. Never raises: failures become a status."""
-    row: dict[str, Any] = {"tier": f"{tier['agent']}:{tier['model']}:{effort}"}
+    row: dict[str, Any] = {"tier": f"{tier['name']}:{tier['model']}:{effort}"}
+    lookups = bool(tier["allowed_tools"])
     cmd = [
         "claude", "-p",
-        "--agent", tier["agent"],
+        "--system-prompt", system_prompt(tier["name"]),
+        "--tools", "Read,Bash,StructuredOutput" if lookups else "StructuredOutput",
+        # Isolate every call from the local Claude Code setup: no user or project
+        # settings or CLAUDE.md, MCP servers, hooks, skills or slash commands.
+        "--setting-sources", "", "--strict-mcp-config",
+        "--settings", '{"disableAllHooks": true}', "--disable-slash-commands",
         "--model", tier["model"],
         "--effort", effort,
         "--output-format", "json",
         "--json-schema", SCHEMA_ARG,
         "--no-session-persistence",
-        # Keeps cwd/env/VCS status out of the system prompt so the spec stays in
-        # the shared cache prefix; without it every Tier-2 call re-wrote ~13k tokens.
-        "--exclude-dynamic-system-prompt-sections",
     ]
-    if tier["allowed_tools"]:
-        # The working directory holds outputs and the spec's history; deny it
-        # explicitly, since reads inside the cwd are otherwise allowed.
-        cmd += ["--disallowed-tools", "Read(./output/**)", "Read(./src/**)", "Read(./.claude/**)"]
+    if lookups:
+        # Reads inside the working directory are otherwise allowed, and output/
+        # holds the other annotators' work.
+        cmd += ["--disallowed-tools", "Read(./output/**)", "Read(./src/**)", "Read(./data/oracle-cards*)"]
         cmd += ["--allowed-tools", *tier["allowed_tools"]]
     # The prompt goes on stdin: --allowed-tools is variadic and would swallow a
     # trailing positional prompt.
@@ -272,19 +298,17 @@ def next_stage(row: dict[str, Any], escalate: bool) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run MTG endophora annotation pipeline.")
-    parser.add_argument("--scryfall", default="../deckmaste.rs/data/scryfall/oracle-cards.jsonl",
+    parser.add_argument("--scryfall", default=DEFAULT_SCRYFALL,
                         help="Path to Scryfall oracle-cards .jsonl or .jsonl.gz")
-    parser.add_argument("--canon-dir", default="../deckmaste.rs/plugins/canon/cards",
-                        help="Path to canon .syl cards directory")
     sel = parser.add_mutually_exclusive_group()
     sel.add_argument("--card", action="append", help="Run on specific card name(s)")
-    sel.add_argument("--spike", action="store_true", help="Run on the 15-card canon spike set")
+    sel.add_argument("--spike", action="store_true", help="Run on the 15-card smoke set")
     sel.add_argument("--heldout", action="store_true", help="Run on the held-out set absent from the spec")
-    sel.add_argument("--canon-only", action="store_true", help="Restrict to cards present in canon-dir")
+    sel.add_argument("--cards-file", help="Run on the cards named in this file, one per line (also leak-guarded)")
     parser.add_argument("--limit", type=int, default=None, help="Max number of cards to queue")
     parser.add_argument("--concurrency", type=int, default=5, help="Concurrent Tier-1 invocations")
     parser.add_argument("--escalation-concurrency", type=int, default=2, help="Concurrent Tier-2 invocations")
-    parser.add_argument("--tier1-model", default="haiku", help="Model for the Tier-1 agent (e.g. haiku, sonnet)")
+    parser.add_argument("--tier1-model", default="haiku", help="Model for Tier 1 (e.g. haiku, sonnet, or a full model ID)")
     parser.add_argument("--effort", default="medium", choices=["low", "medium", "high", "xhigh", "max"],
                         help="Effort level for Tier-1")
     parser.add_argument("--escalation-effort", default="high", choices=["low", "medium", "high", "xhigh", "max"],
@@ -303,14 +327,13 @@ def main() -> None:
     args = parser.parse_args()
 
     TIER1["model"] = args.tier1_model
-    stale = stale_agents()
-    if stale:
-        sys.exit(f"Stale agent files ({', '.join(stale)}); run src/build_agents.py first.")
     spec = spec_sha()
     spec_text = (ROOT_DIR / "prompts" / "endophora_spec.md").read_text(encoding="utf-8")
     scryfall_path = (ROOT_DIR / args.scryfall).resolve()
-    canon_dir = ROOT_DIR / args.canon_dir
-    guarded = set(HELDOUT_CARDS) | (load_canon_card_names(canon_dir) if canon_dir.exists() else set())
+    listed = load_card_names(ROOT_DIR / args.cards_file) if args.cards_file else []
+    if args.cards_file and not listed:
+        sys.exit(f"No card names in {args.cards_file}")
+    guarded = set(HELDOUT_CARDS) | set(listed)
     leaked = spec_leaks(spec_text, scryfall_path, guarded)
     if leaked:
         sys.exit("Spec quotes evaluation cards (9-word overlap): "
@@ -343,10 +366,8 @@ def main() -> None:
         wanted_names = SPIKE_CARDS
     elif args.heldout:
         wanted_names = HELDOUT_CARDS
-    elif args.canon_only:
-        wanted_names = sorted(load_canon_card_names(ROOT_DIR / args.canon_dir))
-        if not wanted_names:
-            sys.exit(f"No .syl cards in {ROOT_DIR / args.canon_dir}; pass --canon-dir.")
+    elif args.cards_file:
+        wanted_names = listed
     wanted_set = set(wanted_names) if wanted_names is not None else None
 
     jobs: list[tuple[str, dict[str, Any], dict[str, Any] | None]] = []
@@ -378,8 +399,10 @@ def main() -> None:
             prior = prev["tier1"] if prev.get("status") == "escalation_error" else prev
         jobs.append((stage, info, prior))
 
-    if wanted_names is not None and not args.canon_only:  # canon also lists meld halves
-        missing = sorted(set(wanted_names) - seen)
+    if wanted_names is not None:
+        # A meld pair listed as "A // B" is found through its halves.
+        missing = sorted(n for n in set(wanted_names) - seen
+                         if not all(p in seen for p in n.split(" // ")))
         if missing:
             print(f"Not found among Vintage-legal cards: {', '.join(missing)}", file=sys.stderr)
     if isinstance(wanted_names, list):
@@ -387,8 +410,8 @@ def main() -> None:
         jobs.sort(key=lambda j: order.get(j[1]["card_name"], len(order)))
     if args.reverse:
         jobs.reverse()
-    # --limit takes the first N in the selection's order (alphabetical for canon),
-    # not Scryfall file order.
+    # --limit takes the first N in the selection's order (file order for
+    # --cards-file), not Scryfall file order.
     if args.limit:
         jobs = jobs[: args.limit]
 
@@ -399,7 +422,7 @@ def main() -> None:
         f"{counts['skip']} -> {out_path}",
         flush=True,
     )
-    base = {"spec_sha": spec, "scryfall_snapshot": snapshot}
+    base = {"spec_sha": spec, "scryfall_snapshot": snapshot, "claude_code": claude_version()}
     if empty_rows:
         print(f"Recording {len(empty_rows)} cards with no candidate mentions without a model call", flush=True)
         with open(out_path, "w" if args.overwrite else "a", encoding="utf-8") as f:
@@ -432,14 +455,15 @@ def main() -> None:
 
         def submit(stage: str, info: dict[str, Any], prior: dict[str, Any] | None) -> None:
             if stage == "tier1":
-                fut = pool1.submit(run_agent_on_card, info, TIER1, args.effort)
+                fut = pool1.submit(run_model_on_card, info, TIER1, args.effort)
             else:
-                fut = pool2.submit(run_agent_on_card, info, TIER2, args.escalation_effort, prior)
+                fut = pool2.submit(run_model_on_card, info, TIER2, args.escalation_effort, prior)
             pending[fut] = (stage, info, prior)
 
         for stage, info, prior in jobs:
             submit(stage, info, prior)
 
+        failures = 0
         while pending:
             finished, _ = cf.wait(pending, return_when=cf.FIRST_COMPLETED)
             for fut in finished:
@@ -465,6 +489,15 @@ def main() -> None:
                 out_f.flush()
 
                 status = row["status"]
+                failures = failures + 1 if status in FAILURE_STATUSES else 0
+                if failures >= MAX_CONSECUTIVE_FAILURES:
+                    print(f"Stopping: {failures} consecutive failures; last: "
+                          f"{row.get('error') or row.get('stderr')}", file=sys.stderr, flush=True)
+                    for f in pending:
+                        f.cancel()
+                    pool1.shutdown(wait=False, cancel_futures=True)
+                    pool2.shutdown(wait=False, cancel_futures=True)
+                    sys.exit(2)
                 if status == "ok":
                     ann = row["annotation"]
                     cost = (row.get("meta") or {}).get("total_cost_usd")

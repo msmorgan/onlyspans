@@ -1,0 +1,38 @@
+{
+  "name": "OnlySpans reference",
+  "cards": 32027,
+  "mentions": 34937,
+  "by_source": {
+    "no_candidates": 15029,
+    "consensus": 14133,
+    "adjudicated": 2855,
+    "repaired": 10,
+    "declined": 1
+  },
+  "declined": [
+    {
+      "card_name": "Lantern Flare",
+      "oracle_id": "06a1c404-d76f-4206-8740-7ad7488fac33",
+      "reason": "Cleave: the bracketed text defining X is removed when cast for its cleave cost, so X has two referents depending on how the spell is cast. The format has one antecedent per mention, so the card is left out of the reference rather than annotated with one arbitrary reading."
+    }
+  ],
+  "annotation_spec_shas": {
+    "49c2466ccc84": 32020,
+    "f2e08463b7a4": 7
+  },
+  "spec_sha_at_assembly": "97b5258cc731",
+  "scryfall_snapshot": {
+    "descriptor_updated_at": "2026-10-03T09:01:53.878+00:00",
+    "jsonl_download_uri": "https://data.scryfall.io/oracle-cards/oracle-cards-20261003090153.jsonl.gz",
+    "jsonl_sha256": "49dc966bda6ef588fc68e8d6972de25df1b660ed2ea654904584698263007ebb"
+  },
+  "annotators": [
+    "endophora-haiku:haiku:high",
+    "endophora-haiku:sonnet:medium"
+  ],
+  "final_annotation_by_tier": {
+    "none": 15029,
+    "endophora-haiku:haiku:high": 14133,
+    "endophora-opus:opus:high": 2865
+  }
+}

@@ -62,6 +62,42 @@ def key(m: dict) -> tuple:
     return (m.get("ability"), (m.get("mention_text") or "").lower(), m.get("occurrence"))
 
 
+def queue_lines(rows: list[dict], split: str = "vintage") -> list[dict]:
+    """Queue lines for one card given each run's row; empty if every run agrees confidently."""
+    oid = rows[0]["oracle_id"]
+    names = {_norm(n) for n in self_names({"name": rows[0]["card_name"]})}
+    lines: dict[tuple, dict] = {}
+
+    def queue(k: tuple, reason: str) -> None:
+        q = lines.setdefault(k, {"split": split, "card": rows[0]["card_name"], "oracle_id": oid,
+                                 "ability_id": k[0], "mention_text": k[1], "occurrence": k[2],
+                                 "reasons": []})
+        if reason not in q["reasons"]:
+            q["reasons"].append(reason)
+
+    card_level = []
+    for i, r in enumerate(rows):
+        if r.get("status") != "ok" or not r.get("annotation"):
+            card_level.append(f"run{i + 1}_status:{r.get('status')}")
+        elif r["annotation"].get("verdict") == "uncertain":
+            card_level.append(f"run{i + 1}_uncertain")
+    mentions = [{key(m): m for m in (r.get("annotation") or {}).get("mentions", [])} for r in rows]
+    for k in set().union(*mentions):
+        present = [m.get(k) for m in mentions]
+        if any(p is None for p in present):
+            queue(k, "missing:" + ",".join(f"run{i + 1}" for i, p in enumerate(present) if p is None))
+            continue
+        if not all(same_referent(present[0], p, names) for p in present[1:]):
+            queue(k, "referent_differs")
+        if any(not p.get("confident", True) for p in present):
+            queue(k, "confident_false")
+    if card_level:
+        for k in set().union(*mentions) or {("A0", "(card)", 1)}:
+            for reason in card_level:
+                queue(k, reason)
+    return list(lines.values())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", nargs="+", required=True)
@@ -77,40 +113,10 @@ def main() -> None:
     accepted = 0
     with open(ROOT_DIR / args.queue, "w", encoding="utf-8") as out:
         for oid in sorted(common):
-            rows = [r[oid] for r in runs]
-            names = {_norm(n) for n in self_names({"name": rows[0]["card_name"]})}
-            lines: dict[tuple, dict] = {}
-
-            def queue(k: tuple, reason: str) -> None:
-                q = lines.setdefault(k, {"split": args.split, "card": rows[0]["card_name"], "oracle_id": oid,
-                                         "ability_id": k[0], "mention_text": k[1], "occurrence": k[2],
-                                         "reasons": [], "lean": None})
-                if reason not in q["reasons"]:
-                    q["reasons"].append(reason)
-
-            card_level = []
-            for i, r in enumerate(rows):
-                if r.get("status") != "ok" or not r.get("annotation"):
-                    card_level.append(f"run{i + 1}_status:{r.get('status')}")
-                elif r["annotation"].get("verdict") == "uncertain":
-                    card_level.append(f"run{i + 1}_uncertain")
-            mentions = [{key(m): m for m in (r.get("annotation") or {}).get("mentions", [])} for r in rows]
-            for k in set().union(*mentions):
-                present = [m.get(k) for m in mentions]
-                if any(p is None for p in present):
-                    queue(k, "missing:" + ",".join(f"run{i + 1}" for i, p in enumerate(present) if p is None))
-                    continue
-                if not all(same_referent(present[0], p, names) for p in present[1:]):
-                    queue(k, "referent_differs")
-                if any(not p.get("confident", True) for p in present):
-                    queue(k, "confident_false")
-            if card_level:
-                for k in set().union(*mentions) or {("A0", "(card)", 1)}:
-                    for reason in card_level:
-                        queue(k, reason)
+            lines = queue_lines([r[oid] for r in runs], args.split)
             if lines:
                 queued_cards += 1
-                for q in lines.values():
+                for q in lines:
                     reasons_count.update(q["reasons"])
                     out.write(json.dumps(q, ensure_ascii=False) + "\n")
             else:
