@@ -34,5 +34,19 @@
     "none": 15029,
     "endophora-haiku:haiku:high": 14133,
     "endophora-opus:opus:high": 2865
+  },
+  "antecedent_occurrences": {
+    "by_method": {
+      "unique": 32727,
+      "no_span": 1306,
+      "same_referent": 654,
+      "before_mention": 267,
+      "model": 248
+    },
+    "model": "opus",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "effort": "medium"
   }
 }

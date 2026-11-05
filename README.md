@@ -21,7 +21,8 @@ Each line:
      "context_snippet": "[their] controller chooses one of them",
      "category": "pronoun",
      "antecedent": {"kind": "text_span", "referent_type": "object", "ability": "A0",
-                    "text": "two or more permanents a player controls", "secondary_text": null},
+                    "text": "two or more permanents a player controls", "occurrences": [1],
+                    "secondary_text": null},
      "confident": true}
   ],
   "source": "adjudicated",
@@ -34,7 +35,7 @@ Each line:
 - **The antecedent** is the phrase that first introduced the referent. `kind` is `text_span`; `split` (several separately named things, parts joined with `" + "`, and `ability` likewise when the parts are in different abilities); `source` (the card itself, not named in that ability); `performer` (the implicit "you"); or `distributive_member`. `secondary_text` holds the latest re-mention or zone-move clause in a chain, the whole collection for "the rest", or the action clause for a participial readback.
 - **Categories:** `pronoun`, `reflexive`, `demonstrative`, `definite_readback`, `participial_description`, `contrastive`, `complement_or_reciprocal`, `amount_or_outcome`, `lookback_or_followup`, `relative`. The full definitions are in [`prompts/endophora_spec.md`](prompts/endophora_spec.md).
 - **`source`** says how the card was settled: `no_candidates` (nothing in the text could refer back), `consensus` (both annotators agreed, confidently), `adjudicated`, or `repaired` (adjudicated, then an antecedent's ability ID corrected mechanically; `repaired` lists the edits).
-- **Known gap:** an antecedent has no occurrence number, so when its phrase appears twice in one ability, the text alone doesn't say which.
+- **The antecedent is located by** `ability`, `text` and `occurrences`: one number per span part (`[1]` for an ordinary span, one per part for a split), the n-th non-overlapping, exact, case-sensitive occurrence of that part's text in its ability. `occurrences` is null for `source` and `performer`.
 
 ## How it was made
 
@@ -54,6 +55,7 @@ This is model-produced data with cross-checks, not human-verified ground truth.
 - **Spec:** 32,020 cards were annotated under spec `49c2466ccc84` and 7 under `f2e08463b7a4` (both in `prompts/history/`). The current spec adds only the note on per-part ability IDs for split antecedents.
 - **Card data:** Scryfall Oracle Cards of 2026-10-03, `https://data.scryfall.io/oracle-cards/oracle-cards-20261003090153.jsonl.gz` (uncompressed SHA-256 `49dc966b…`, full hash in the manifest).
 - **Environment:** the release was built through Claude Code agents running under the owner's Claude Code setup, so its prompts also carried that setup's CLAUDE.md instructions and plugin hook output (unrelated to the task). The current code isolates every call from the local setup instead.
+- **Antecedent positions:** 32,727 spans occur once in their ability; 654 are self-references or variables (any occurrence is the same thing); 267 are the only occurrence before their mention; 248 were chosen by `claude-opus-5-5` (medium effort, $2). 1,306 antecedents have no span.
 - **Volume and cost:** 2,866 cards queued: 2,855 adjudicated, 10 adjudicated and then repaired, 1 declined. About $490 in API-equivalent terms (Haiku ~$28, Sonnet ~$290, Opus ~$170), run on a Claude subscription. Wall time was roughly 3 h for Haiku, 2 h for Sonnet (in parallel) and 1 h for adjudication.
 
 ## Rebuilding
@@ -104,6 +106,12 @@ Every model call runs `claude -p` with the spec as its whole system prompt and i
    ```
 
    The first `--runs` file supplies the accepted annotations. Later `--adjudicated` files take precedence.
+
+6. **Locate antecedents.** `locate.py` adds `occurrences` to every antecedent in the release. It decides most mechanically (the phrase occurs once; a self-reference or variable, where every occurrence is the same thing; or exactly one occurrence precedes the mention) and asks Opus for the rest, caching its answers in `output/`:
+
+   ```sh
+   python3 src/locate.py
+   ```
 
 ## License and notice
 
