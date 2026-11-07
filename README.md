@@ -17,12 +17,13 @@ Each line:
   "abilities": {"A0": "You and target player exchange control of … their controller chooses one of them."},
   "costs": {"cost": "{3}{U}"},
   "mentions": [
-    {"ability": "A0", "mention_text": "their", "occurrence": 1,
+    {"ability": "A0", "mention_text": "their", "occurrence": 1, "span": [218, 223],
      "context_snippet": "[their] controller chooses one of them",
      "category": "pronoun",
      "antecedent": {"kind": "text_span", "referent_type": "object", "ability": "A0",
                     "text": "two or more permanents a player controls", "occurrences": [1],
-                    "secondary_text": null},
+                    "spans": [{"ability": "A0", "span": [154, 194]}],
+                    "secondary_text": null, "secondary_span": null},
      "confident": true}
   ],
   "source": "adjudicated",
@@ -35,6 +36,7 @@ Each line:
 - **The antecedent** is the phrase that first introduced the referent. `kind` is `text_span`; `split` (several separately named things, parts joined with `" + "`, and `ability` likewise when the parts are in different abilities); `source` (the card itself, not named in that ability); `performer` (the implicit "you"); or `distributive_member`. `secondary_text` holds the latest re-mention or zone-move clause in a chain, the whole collection for "the rest", or the action clause for a participial readback.
 - **Categories:** `pronoun`, `reflexive`, `demonstrative`, `definite_readback`, `participial_description`, `contrastive`, `complement_or_reciprocal`, `amount_or_outcome`, `lookback_or_followup`, `relative`. The full definitions are in [`prompts/endophora_spec.md`](prompts/endophora_spec.md).
 - **`source`** says how the card was settled: `no_candidates` (nothing in the text could refer back), `consensus` (both annotators agreed, confidently), `adjudicated`, or `repaired` (adjudicated, then an antecedent's ability ID corrected mechanically; `repaired` lists the edits).
+- **Character offsets** are ability-local and half-open: `[start, end]` slices `abilities[ability]` (or `costs[...]`). `span` locates the mention; `antecedent.spans` has one `{"ability", "span"}` per part (null for `source` and `performer`); `antecedent.secondary_span` locates `secondary_text`, placed at its latest occurrence before the mention when it occurs more than once. Antecedents can sit in another ability (linked abilities) or after the mention ("X … where X is …").
 - **The antecedent is located by** `ability`, `text` and `occurrences`: one number per span part (`[1]` for an ordinary span, one per part for a split), the n-th non-overlapping, exact, case-sensitive occurrence of that part's text in its ability. `occurrences` is null for `source` and `performer`.
 
 ## How it was made
@@ -118,6 +120,12 @@ Every model call runs `claude -p` with the spec as its whole system prompt and i
 
    ```sh
    python3 src/fixups.py
+   ```
+
+8. **Offsets.** `spans.py` adds the character offsets, checking every one against the text it slices:
+
+   ```sh
+   python3 src/spans.py
    ```
 
 ## License and notice

@@ -618,5 +618,9 @@
         ]
       }
     }
-  ]
+  ],
+  "secondary_spans": {
+    "unique": 5172,
+    "latest_before_mention": 273
+  }
 }
